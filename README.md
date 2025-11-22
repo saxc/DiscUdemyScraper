@@ -13,4 +13,4 @@ The script allows you to access free [Udemy](https://www.udemy.com/) courses lis
 - The CLI output of opened courses (✅) can be copied to the blacklist to prevent them from being opened again.
 
 ## Demo
-![](demo.webm)
+![](demo.gif)
