@@ -3,6 +3,7 @@
 import requests
 import webbrowser
 from bs4 import BeautifulSoup
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # === Settings ===
 show_blacklist_files = True
@@ -61,27 +62,32 @@ def scrap(url):
         if 'href' in a_tag.attrs:
             card_links.append(a_tag['href'])
 
-    # collect sub_side_links
-    sub_side_links = []
-    for link in card_links:
-        response = requests.get(link)
-        soup_inner = BeautifulSoup(response.content, 'html.parser')
-
-        take_course_tag = soup_inner.find('a', string=lambda s: s and 'Take Course' in s)
-        if take_course_tag and 'href' in take_course_tag.attrs:
-            sub_side_links.append(take_course_tag['href'])
-
-    # collect udemy links
+    # collect sub side infos parallel
     udemy_links = []
-    for course_link in sub_side_links:
-        response = requests.get(course_link)
-        soup_final = BeautifulSoup(response.content, 'html.parser')
-
-        target_tag = soup_final.find('a', string=lambda s: s and 'https' in s)
-        if target_tag and 'href' in target_tag.attrs:
-            udemy_links.append(target_tag['href'])
+    with ThreadPoolExecutor() as ex:
+        futures = [ex.submit(scrap_sub_side, link) for link in card_links]
+        for fut in as_completed(futures):
+            udemy_links.append(fut.result())
 
     return udemy_links
+
+
+def scrap_sub_side(url):
+    # collect sub_side_links
+    response = requests.get(url)
+    soup_inner = BeautifulSoup(response.content, 'html.parser')
+
+    take_course_tag = soup_inner.find('a', string=lambda s: s and 'Take Course' in s)
+    if take_course_tag and 'href' in take_course_tag.attrs:
+        sub_url = take_course_tag['href']
+
+    # collect udemy links
+    response = requests.get(sub_url)
+    soup_final = BeautifulSoup(response.content, 'html.parser')
+
+    target_tag = soup_final.find('a', string=lambda s: s and 'https' in s)
+    if target_tag and 'href' in target_tag.attrs:
+        return target_tag['href']
 
 
 def on_blacklist(url, blacklist):
