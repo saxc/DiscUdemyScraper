@@ -4,6 +4,11 @@ import requests
 import webbrowser
 from bs4 import BeautifulSoup
 
+# === Settings ===
+show_blacklist_files = True
+auto_add_to_blacklist = False
+blacklist_file_name = "blacklist.txt"
+# ================
 
 def main():
     urls = {
@@ -29,10 +34,13 @@ def main():
 
         for link in links:
             if on_blacklist(link, blacklist):
-                print("❌ " + link)
+                if show_blacklist_files == True:
+                    print("❌ " + link)
             else:
                 print("✅ " + link)
                 webbrowser.open(link)
+                if auto_add_to_blacklist == True:
+                    append_line_on_blacklist(link)
 
         more = input("Press return for more courses: ")
 
@@ -81,16 +89,25 @@ def on_blacklist(url, blacklist):
     return base_url in blacklist
 
 
-def get_blacklist(file='blacklist.txt'):
+def get_blacklist():
     try:
-        with open(file, 'r') as datei:
+        with open(blacklist_file_name, 'r') as datei:
             blacklist = datei.read().splitlines()
             return [url.lstrip('✅ ').split('?')[0].rstrip('/') for url in blacklist]
     except FileNotFoundError:
-        print(f"File was not found: {file}")
+        print(f"File was not found: {blacklist_file_name}")
         return []
     except Exception as e:
         print(f"An error has occurred: {e}")
         return []
+
+
+def append_line_on_blacklist(line: str):
+    if not line.endswith("\n"):
+        line = line + "\n"
+
+    with open(blacklist_file_name, "a", encoding="utf-8") as f:
+        f.write(line)
+
 
 main()
